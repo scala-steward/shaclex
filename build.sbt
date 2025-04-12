@@ -90,10 +90,11 @@ lazy val shaclex = project
     LauncherJarPlugin
   )
   //  .disablePlugins(RevolverPlugin)
-  //  .settings(
-  //    buildInfoKeys := BuildInfoKey.ofN(name, version, scalaVersion, sbtVersion),
-  //    buildInfoPackage := "es.weso.shaclex.buildinfo"
-  //  )
+  .enablePlugins(BuildInfoPlugin)
+  .settings(
+    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
+    buildInfoPackage := "buildinfo"
+  )
   .settings(commonSettings, packagingSettings, ghPagesSettings, publishSettings, wixSettings)
   .aggregate(schemaInfer, schema, converter, slang, sgraph)
   .dependsOn(schemaInfer, schema, converter, slang, sgraph)

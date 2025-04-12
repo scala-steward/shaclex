@@ -10,7 +10,7 @@ import es.weso.shaclex.repl.Repl
 import es.weso.utils.FileUtils
 import org.rogach.scallop._
 import org.rogach.scallop.exceptions._
-
+import buildinfo.BuildInfo
 import java.nio.file._
 import scala.concurrent.duration._
 import scala.io.Source
@@ -80,6 +80,7 @@ object Main extends IOApp with LazyLogging {
     } yield ExitCode.Error
     else
       for {
+        _          <- whenA(opts.showVersion(), IO { println(s"Version: ${BuildInfo.version}") })
         _          <- doShExTest(opts)
         baseFolder <- getBaseFolder(opts)
         startTime  <- IO(System.nanoTime())
@@ -151,9 +152,7 @@ object Main extends IOApp with LazyLogging {
     if (opts.showData()) {
       // If not specified uses the input schema format
       val outDataFormat = opts.outDataFormat.getOrElse(opts.dataFormat())
-      rdf.serialize(outDataFormat, relativeBase).flatMap(str => 
-      IO(println(str))        
-      )
+      rdf.serialize(outDataFormat, relativeBase).flatMap(str => IO(println(str)))
     } else {
       ().pure[IO]
     }
@@ -199,13 +198,21 @@ object Main extends IOApp with LazyLogging {
     } else done
 
   private def doShowValidationReport(opts: MainOpts, result: Result): ESIO[Unit] =
-    if (opts.showValidationReport())
+    if (opts.showValidationReport() || opts.validationReportFile.isDefined)
       for {
         res <- fromIO(RDFAsJenaModel.empty)
         str <- fromIO(
           res.use(builder => result.validationReport.toRDF(builder).flatMap(_.serialize(opts.validationReportFormat())))
         )
-        _ <- fromUnit(println(str))
+        _ <- {
+          if (opts.validationReportFile.isDefined) {
+            FileUtils.writeFile(opts.validationReportFile(), str)
+            IO(println(s"Validation report written to ${opts.validationReportFile()}"))
+          } else {
+            IO(println(str))
+          }
+        }
+        // _ <- fromUnit(println(str))
       } yield (())
     else done
 
